@@ -128,10 +128,10 @@ class Settings(BaseSettings):
     api_key: Optional[str] = None
     "The API key to authenticate with"
 
-    http_timeout: float = 30.0
+    http_timeout: float = Field(default=30.0, gt=0.0)
     "The default HTTP timeout for general requests"
 
-    keepalive_expiry: Optional[float] = None
+    keepalive_expiry: Optional[float] = Field(default=None, ge=0.0)
     "Seconds an idle connection is kept in the HTTP pool before being closed. None uses httpx's default (5s). Raise it (e.g. to 120) so a connection opened by `SyncTranscriber.warm()` stays reusable across an in-progress recording."
 
     base_url: str = "https://api.assemblyai.com"
@@ -140,16 +140,16 @@ class Settings(BaseSettings):
     sync_base_url: str = "https://sync.assemblyai.com"
     "The base URL for the synchronous transcription API (used by `SyncTranscriber`)"
 
-    sync_http_timeout: float = 60.0
+    sync_http_timeout: float = Field(default=60.0, gt=0.0)
     "The HTTP timeout for synchronous transcription requests. Kept above the server's 30s deadline so the client doesn't race it."
 
-    sync_live_http_timeout: float = 180.0
+    sync_live_http_timeout: float = Field(default=180.0, gt=0.0)
     "The HTTP timeout for streamed synchronous transcription requests (`transcribe_live`). Like every httpx timeout it bounds each socket operation, not the request as a whole: connecting, each write of a chunk, and each read while waiting for the response after the last byte. Time spent waiting on the caller's producer is not counted, so it need not cover the recording. The sync API caps audio at 120 seconds and independently aborts an upload that goes silent."
 
     dictation_base_url: str = "https://dictation.assemblyai.com"
     "The base URL for the Dictation API (used by `DictationTranscriber`)"
 
-    dictation_http_timeout: float = 300.0
+    dictation_http_timeout: float = Field(default=300.0, gt=0.0)
     """The HTTP timeout for Dictation API requests. Like every httpx timeout it
     bounds each socket operation — connecting, each write, each read while
     waiting for the response — not the request end to end, so time spent
@@ -159,7 +159,7 @@ class Settings(BaseSettings):
     llm_gateway_base_url: str = "https://llm-gateway.assemblyai.com"
     "The base URL for the LLM Gateway API (used by `LLMGateway`/`AsyncLLMGateway`)"
 
-    llm_gateway_http_timeout: float = 30.0
+    llm_gateway_http_timeout: float = Field(default=30.0, gt=0.0)
     "The HTTP timeout for LLM Gateway requests"
 
     polling_interval: float = Field(default=3.0, gt=0.0)

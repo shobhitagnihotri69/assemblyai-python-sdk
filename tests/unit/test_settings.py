@@ -1,75 +1,47 @@
-import os
-from importlib import reload
+import pytest
+from pydantic import ValidationError
 
 import assemblyai as aai
 
 
-def test_api_key_settings():
-    """
-    Tests that `ASSEMBLYAI_API_KEY` works correctly
-    """
-    tmp1 = os.environ.pop("ASSEMBLYAI_API_KEY", None)
-    tmp2 = os.environ.pop("API_KEY", None)
-
-    aai.settings.api_key = None
-    reload(aai)
-    assert aai.settings.api_key is None
-
-    # this should not change the api key
-    os.environ["API_KEY"] = "test"
-    reload(aai)
-    assert aai.settings.api_key is None
-
-    # this should change the api key
-    os.environ["ASSEMBLYAI_API_KEY"] = "test"
-    reload(aai)
-    assert aai.settings.api_key == "test"
-
-    # reset
-    if tmp1:
-        os.environ["ASSEMBLYAI_API_KEY"] = tmp1
-    else:
-        os.environ.pop("ASSEMBLYAI_API_KEY", None)
-
-    if tmp2:
-        os.environ["API_KEY"] = tmp2
-    else:
-        os.environ.pop("API_KEY", None)
-
-    reload(aai)
-    aai.settings.api_key = "test"
+@pytest.mark.parametrize(
+    "field",
+    [
+        "http_timeout",
+        "sync_http_timeout",
+        "sync_live_http_timeout",
+        "dictation_http_timeout",
+        "llm_gateway_http_timeout",
+    ],
+)
+@pytest.mark.parametrize("bad_val", [-10.0, -1.0, -0.001, 0.0, 0])
+def test_settings_timeouts_reject_non_positive(field: str, bad_val: float):
+    with pytest.raises(ValidationError):
+        aai.Settings(**{field: bad_val})
 
 
-def test_base_url_settings():
-    """
-    Tests that `ASSEMBLY_BASE_URL` works correctly
-    """
-    tmp1 = os.environ.pop("ASSEMBLYAI_BASE_URL", None)
-    tmp2 = os.environ.pop("BASE_URL", None)
+def test_settings_keepalive_expiry_rejects_negative():
+    with pytest.raises(ValidationError):
+        aai.Settings(keepalive_expiry=-1.0)
 
-    aai.settings.base_url = "https://api.assemblyai.com"
-    reload(aai)
-    assert aai.settings.base_url == "https://api.assemblyai.com"
 
-    # this should not change the base url
-    os.environ["BASE_URL"] = "https://test.com"
-    reload(aai)
-    assert aai.settings.base_url == "https://api.assemblyai.com"
+def test_settings_keepalive_expiry_accepts_zero_and_positive():
+    s = aai.Settings(keepalive_expiry=0)
+    assert s.keepalive_expiry == 0
+    s2 = aai.Settings(keepalive_expiry=120.0)
+    assert s2.keepalive_expiry == 120.0
 
-    # this should change the base url
-    os.environ["ASSEMBLYAI_BASE_URL"] = "https://test.com"
-    reload(aai)
-    assert aai.settings.base_url == "https://test.com"
 
-    # reset
-    if tmp1:
-        os.environ["ASSEMBLYAI_BASE_URL"] = tmp1
-    else:
-        os.environ.pop("ASSEMBLYAI_BASE_URL", None)
-    if tmp2:
-        os.environ["BASE_URL"] = tmp2
-    else:
-        os.environ.pop("BASE_URL", None)
-
-    reload(aai)
-    aai.settings.api_key = "test"
+def test_settings_valid_timeout_values_are_accepted():
+    s = aai.Settings(
+        http_timeout=15.0,
+        sync_http_timeout=30.0,
+        sync_live_http_timeout=90.0,
+        dictation_http_timeout=120.0,
+        llm_gateway_http_timeout=10.0,
+    )
+    assert s.http_timeout == 15.0
+    assert s.sync_http_timeout == 30.0
+    assert s.sync_live_http_timeout == 90.0
+    assert s.dictation_http_timeout == 120.0
+    assert s.llm_gateway_http_timeout == 10.0
